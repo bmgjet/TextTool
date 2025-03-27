@@ -25,8 +25,10 @@ namespace TextTool
         public static HarmonyCode code; //Self Reference
         //Vars
         private Canvas canvas;
+        private Toggle toggle;
         private GameObject controlPanel;
         private Font font;
+        private Vector3 compass = Vector3.zero;
         private Config config;
         private string ConfigFile;
         private string Status;
@@ -37,7 +39,7 @@ namespace TextTool
    | |/ _ \ \/ / __|| |/ _ \ / _ \| |
    | |  __/>  <| |_ | | (_) | (_) | |
    |_|\___/_/\_\\__||_|\___/ \___/|_|
-V1.0.0 by bmgjet";
+V1.1.0 by bmgjet";
 
         private readonly string HelpInfo = @"TextTool Help:
 Console Commands:
@@ -137,6 +139,8 @@ Hotkeys:
             code = this;
             font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             LoadConfig();
+            toggle = MenuManager.Instance.CreateWindowToggle("HarmonyMods//TextTool.png");
+            toggle.onValueChanged.AddListener((value) => CreateWindow(value));
         }
 
         public void OnUnloaded(OnHarmonyModUnloadedArgs args)//Plugin Unload Hook
@@ -169,7 +173,7 @@ Hotkeys:
                     }
                     if (Keyboard.current.ctrlKey.isPressed && Keyboard.current.pKey.wasPressedThisFrame) //CTRL+P keys
                     {
-                        code.CreateControlPanel();
+                        code.CreateWindow(true);
                         return false;
                     }
                 }
@@ -189,7 +193,7 @@ Hotkeys:
                 {
                     case "texttool.ui":
                         {
-                            try { code.CreateControlPanel(); }
+                            try { code.CreateWindow(true); }
                             catch (Exception e) { __instance.Post(e.ToString()); }
                             __instance.consoleInput.text = string.Empty; //Blank console text input
                             return false;
@@ -375,12 +379,23 @@ Hotkeys:
             }
         }
 
+        void CreateWindow(bool togglevalue)
+        {
+            if (canvas != null || togglevalue == false)
+            {
+                CloseWindow();
+                return;
+            }
+            code.CreateControlPanel();
+        }
+
         void CloseWindow()
         {
             Scale(true); //Save Scale/position
             if (canvas != null) { GameObject.Destroy(canvas.gameObject); }//Destroy UI Window
             LoadScreen.Instance.isEnabled = false; //Allow Key/Mouse Input On RustMapper
-            Compass.Instance.transform.position -= (Compass.Instance.transform.up * 500); //Restore compass position
+            Compass.Instance.transform.position = compass; //Restore compass position
+            if(toggle != null) { toggle.isOn = false; }
         }
 
         void ResetLayout()
@@ -555,6 +570,7 @@ Hotkeys:
             CreateScaleHandle();
             Scale(false); //Load Scale
             LoadScreen.Instance.isEnabled = true; //Lock Controls
+            if(compass == Vector3.zero){compass = Compass.Instance.transform.position;}
             Compass.Instance.transform.position += (Compass.Instance.transform.up * 500); //Hide Compass
         }
 
